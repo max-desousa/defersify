@@ -8,6 +8,7 @@ import (
   "path/filepath"
   "regexp"
   "io/fs"
+  "defersify/internal/deferSearcher"
 )
 
 var Extensions []string
@@ -128,6 +129,9 @@ func main() {
 
   Verbose = *verbose
   handleUserSubmittedExtensions(*extensions)
-  fmt.Println(findFilesToDefersify())
+  filesToDefersify := findFilesToDefersify()
+  fmt.Println(filesToDefersify)
+  deferSearcher.SeachForDefers(filesToDefersify[0])
+  deferSearcher.SeachForDefers(filesToDefersify[1])
 }
 

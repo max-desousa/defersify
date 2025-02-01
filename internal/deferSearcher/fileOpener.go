@@ -5,10 +5,19 @@ import (
   "bufio"
   "os"
   "regexp"
+  "strings"
 )
 
 func SeachForDefers(_filepath string) {
+  deferStack := make(map[int][]string)
+  var levelOfNest int = 0
+  //withinBlockDefers := false
+  //withinBlockComment := false
 
+  deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
+  deferRegex := regexp.MustCompile(`defer\s+`)
+  returnRegex := regexp.MustCompile(`^\s*return\s+`)
+  
   readFile, err := os.Open(_filepath)
   defer readFile.Close()
 
@@ -17,7 +26,7 @@ func SeachForDefers(_filepath string) {
     return
   }
 
-  writeFile, err := os.Create("defers.txt")
+  writeFile, err := os.Create(simpleFileRename(_filepath))
   defer writeFile.Close()
 
   if err != nil {
@@ -34,7 +43,39 @@ func SeachForDefers(_filepath string) {
       writeFile.WriteString(line + "\n")
       continue
     }
+
+    if strings.Count(line, "{") > 1 {
+      fmt.Println("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
+      break
+    }
+
+    if ( strings.Contains(line, "{") ) {
+      if (deferStatementRegex.MatchString(line)) {
+      } else {
+        levelOfNest++
+        fmt.Println("Incrementing level of nest")
+        writeFile.WriteString(line + "\n")
+      }
+    } else if ( deferStatementRegex.MatchString(line) ) {
+      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], line)
+    } else {
+      writeFile.WriteString(line + "\n")
+    }
+
+    if ( returnRegex.MatchString(line) ) {
+      fmt.Println("Test point - am I reaching here?")
+      fmt.Printf("Test point - am I reaching here? - this is the perpetrating line\"%v\"\n", line)
+      for i := levelOfNest; i > 0; i-- {
+        for _, val := range deferStack[i-1] {
+          lineOfCode := deferRegex.ReplaceAllString(val, "")
+          writeFile.WriteString(lineOfCode + "\n")
+          fmt.Println("Writing from defer stack...")
+        }
+      }
+    }
   }
+
+  fmt.Println(deferStack)
 }
 
 /*******************************************************************************
@@ -94,10 +135,12 @@ func obviouslyFineLine(_line string) bool {
 
   deferRegex := regexp.MustCompile(`^\s*defer\s+`)
   openBraceRegex := regexp.MustCompile(`.*[{}].*`)
+  returnStatementRegex := regexp.MustCompile(`^\s*return\s+`)
   
   if ( !deferRegex.MatchString(_line) &&
        !detectOpenButNotCompleteBlockComment(_line) &&
-       !openBraceRegex.MatchString(_line) ) {
+       !openBraceRegex.MatchString(_line) &&
+       !returnStatementRegex.MatchString(_line) ) {
     returnVal = true
   } else {
     returnVal = false
@@ -107,8 +150,26 @@ func obviouslyFineLine(_line string) bool {
 }
 
 
+/*******************************************************************************
+ * simpleFileRename
+ *
+ * Description: This function will take a file path and develops a similar new
+ * name for a file that will effectively be a converted version of the original
+ * 
+ * outpus will be original.c -> original_defersified.c
+ ******************************************************************************/
+func simpleFileRename(_filepath string) string {
+  var outputString string
+  var indexOfFileExtensionPeriod int
+  var fileExtension string
+  var nonExtensionString string
+ 
+  indexOfFileExtensionPeriod = strings.LastIndex(_filepath, ".")
 
-func generateNewFilePath(_filepath string) string {
-  return _filepath + ".defers"
+  nonExtensionString = _filepath[:indexOfFileExtensionPeriod]
+  fileExtension = _filepath[indexOfFileExtensionPeriod:]
+
+  outputString = nonExtensionString + "_defersified" + fileExtension
+  return outputString
 }
 

@@ -129,3 +129,42 @@ func Test_FineLineDetection_IncompleteBlockComment(t *testing.T) {
 /*******************************************************************************
  * Test Group: Obviously Fine Line
  ******************************************************************************/
+func Test_SimpleFileRename_basicString(t *testing.T) {
+  var returnVal string
+
+  returnVal =  simpleFileRename("file.go")
+
+  if (returnVal != "file_defersified.go") {
+    t.Errorf("Expected file_diversified.go, got %s", returnVal)
+  } 
+}
+
+func Test_SimpleFileRename_FilePath(t *testing.T) {
+  var returnVal string
+
+  returnVal =  simpleFileRename("/usr/bill-lumbergh/Documents/00-Projects/defersify/main.c")
+
+  if (returnVal !="/usr/bill-lumbergh/Documents/00-Projects/defersify/main_defersified.c") {
+    t.Errorf("Expected \"/usr/bill-lumbergh/Documents/00-Projects/defersify/main_defersified.c\", got %s", returnVal)
+  } 
+}
+
+func Test_SimpleFileRename_RelativePath(t *testing.T) {
+  var returnVal string
+
+  returnVal =  simpleFileRename("../main.c")
+
+  if (returnVal !="../main_defersified.c") {
+    t.Errorf("Expected \"../main_defersified.c\", got %s", returnVal)
+  } 
+}
+
+func Test_SimpleFileRename_HiddenFolder(t *testing.T) {
+  var returnVal string
+
+  returnVal =  simpleFileRename("here/.hidden/main.c")
+
+  if (returnVal !="here/.hidden/main_defersified.c") {
+    t.Errorf("Expected \"here/.hidden/main_defersified.c\", got %s", returnVal)
+  } 
+}
