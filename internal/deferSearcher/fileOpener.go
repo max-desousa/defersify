@@ -12,10 +12,11 @@ func SeachForDefers(_filepath string) {
   deferStack := make(map[int][]string)
   var levelOfNest int = 0
   //withinBlockDefers := false
-  //withinBlockComment := false
+  withinBlockComment := false
 
   deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
-  deferRegex := regexp.MustCompile(`defer\s+`)
+  deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
+  //deferRegex := regexp.MustCompile(`defer\s+`)
   returnRegex := regexp.MustCompile(`^\s*return\s+`)
   
   readFile, err := os.Open(_filepath)
@@ -44,6 +45,15 @@ func SeachForDefers(_filepath string) {
       continue
     }
 
+    if ( strings.Contains(line, "/*") || withinBlockComment ) {
+      withinBlockComment = true
+      writeFile.WriteString(line + "\n")
+      if ( strings.Contains(line, "*/") ) {
+        withinBlockComment = false
+      }
+      continue
+    }
+
     if strings.Count(line, "{") > 1 {
       fmt.Println("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
       break
@@ -57,22 +67,49 @@ func SeachForDefers(_filepath string) {
         writeFile.WriteString(line + "\n")
       }
     } else if ( deferStatementRegex.MatchString(line) ) {
-      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], line)
+      modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
+      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
+    } else if ( strings.Contains(line, "}") ) {
+      if ( len(deferStack[levelOfNest-1]) > 0 ) {
+        for _, val := range deferStack[levelOfNest-1] {
+          writeFile.WriteString(val + "\n")
+          fmt.Println("Writing from defer stack...")
+        }
+        //fmt.Println("Debugging start deferStack Analysis")
+        //fmt.Println(deferStack)
+        deferStack[levelOfNest-1] = nil
+        //fmt.Println(deferStack)
+        //fmt.Println("Debugging END deferStack Analysis")
+      }
+      levelOfNest--
+      writeFile.WriteString(line + "\n")
+    } else if ( returnRegex.MatchString(line) ) {
+      for i := levelOfNest; i > 0; i-- {
+        for _, val := range deferStack[i-1] {
+          writeFile.WriteString(val + "\n")
+          fmt.Println("Writing from defer stack...")
+        }
+        writeFile.WriteString(line + "\n")
+        if ( levelOfNest == 1 ) {
+          levelOfNest = 0
+          deferStack = make(map[int][]string)
+        }
+      }
     } else {
       writeFile.WriteString(line + "\n")
     }
 
-    if ( returnRegex.MatchString(line) ) {
-      fmt.Println("Test point - am I reaching here?")
-      fmt.Printf("Test point - am I reaching here? - this is the perpetrating line\"%v\"\n", line)
-      for i := levelOfNest; i > 0; i-- {
-        for _, val := range deferStack[i-1] {
-          lineOfCode := deferRegex.ReplaceAllString(val, "")
-          writeFile.WriteString(lineOfCode + "\n")
-          fmt.Println("Writing from defer stack...")
-        }
-      }
-    }
+    //if ( returnRegex.MatchString(line) ) {
+    //  fmt.Println("Test point - am I reaching here?")
+    //  fmt.Printf("Test point - am I reaching here? - this is the perpetrating line\"%v\"\n", line)
+    //  //for i := levelOfNest; i > 0; i-- {
+    //  //  //for _, val := range deferStack[i-1] {
+    //  //  //  lineOfCode := deferRegex.ReplaceAllString(val, "")
+    //  //  //  writeFile.WriteString(lineOfCode + "\n")
+    //  //  //  fmt.Println("Writing from defer stack...")
+    //  //  //}
+    //  //}
+    //}
   }
 
   fmt.Println(deferStack)

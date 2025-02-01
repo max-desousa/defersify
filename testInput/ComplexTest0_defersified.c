@@ -13,14 +13,15 @@ int main() {
     printf("Error opening file!\n");
     return 1;
   fclose(f);
+    return 1;
   }
   else {
     Complex c;
     fscanf(f, "%d %d", &c.a, &c.b);
     printf("Complex number: %d + %di\n", c.a, c.b);
+    printf("File has been completely read!\n");
   }
 
-  return 0;
-    printf("File has been completely read!\n");
   fclose(f);
+  return 0;
 }
