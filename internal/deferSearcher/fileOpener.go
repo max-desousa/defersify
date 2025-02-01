@@ -8,19 +8,6 @@ import (
 )
 
 func SeachForDefers(_filepath string) {
-  //var withinComment bool = false
-  //var deferStack [][]string
-  //var levelOfDepth uint8 = 0
-  //var newFileContents []string
-  //var withinDefersBlock bool = false
-  //var inFunctionBlock bool = false
- 
-  //deferRegex := regexp.MustCompile(`^\s*defer\s+`)
-  //blockDefersRegex := regexp.MustCompile(`^\s*defer\s*{`)
-  //blockCommentStartRegex := regexp.MustCompile(`^\s*/\*`)
-  //blockCommentEndRegex := regexp.MustCompile(`\*/\s*$`)
-  //completeBlockCommentRegex := regexp.MustCompile(`^\s*/\*.*\*/\s*$`)
-  //openBraceRegex := regexp.MustCompile(`.*{.*`)
 
   readFile, err := os.Open(_filepath)
   defer readFile.Close()
@@ -38,63 +25,83 @@ func SeachForDefers(_filepath string) {
     return
   }
 
-  scanner := bufio.NewScanner(file)
+  scanner := bufio.NewScanner(readFile)
 
   for scanner.Scan() {
     line := scanner.Text()
 
-    /***************************************************************************
-     * Let's assume the MAJORITY of content provided in the software is not a
-     * deferal of any sort. If the line doesn't contain any sort of characters
-     * that would indicate a defer or a levelOfNest that needs to be accounted
-     * for, then we can just write the line to the new file and move on to the
-     * next line.
-     **************************************************************************/
     if (obviouslyFineLine(line)) {
       writeFile.WriteString(line + "\n")
       continue
     }
-
-    /***************************************************************************
-     * else, let's do a more in depth analysis of the line to determine if it
-     * is a defer or a block of defers.
-     **************************************************************************/
-    inFunctionBlock = openBraceRegex.MatchString(line)
-    if (!inFunctionBlock) {
-      continue
-    }
   }
-
-
 }
 
-func detectOpenButNotCompleteBlockComment(_line string) bool {
+/*******************************************************************************
+ * Function: detectCloseToBlockComment
+ ******************************************************************************/
+func detectCloseToBlockComment(_line string) bool {
   var returnVal bool = false
 
-  blockCommentOpenRegex := regexp.MustCompile(`/\*`)
   blockCommentCloseRegex := regexp.MustCompile(`\*/`)
-  blockCommentCompletedRegex := regexp.MustCompile(`/\*.*\*/`)
 
-  /* Set return if we find an attempt to open a block comment but no attempt to close it */
-  returnVal = (blockCommentOpenRegex.MatchString(_line) && !blockCommentCloseRegex.MatchString(_line))
-  /* Or the results of a check to make sure that the attempt to close comse AFTER the attempt to open... i.e. valid */
-  returnVal |= !blockCommentCompletedRegex.MatchString(_line)
+  if (blockCommentCloseRegex.MatchString(_line)) {
+    returnVal = true
+  }
 
   return returnVal
 }
 
+/*******************************************************************************
+ * Function: detectOpenButNotCompleteBlockComment
+ * 
+ * Description: This function will detect if future lines will be comments.
+ ******************************************************************************/
+func detectOpenButNotCompleteBlockComment(_line string) bool {
+  var returnVal bool = false
 
+  blockCommentOpenRegex := regexp.MustCompile(`/\*`)
+  blockCommentCompletedRegex := regexp.MustCompile(`/\*.*\*/`)
+
+  /* Check that there is any sort of block comment in the line */
+  if (blockCommentOpenRegex.MatchString(_line)) {
+    if ( blockCommentCompletedRegex.MatchString(_line) ) {
+      returnVal = false
+    } else {
+      returnVal = true
+    }
+  }
+
+  return returnVal
+}
+
+/*******************************************************************************
+* Function: obviouslyFineLine
+ *
+ * Description: This function is the first line of defense in determining if a
+ * line from the source file can be written to the new file without any needs to
+ * cache the information in the deferStack. This function will be used to bypass
+ * any line that:
+ * 1. Does not contain a valid defer statement
+ * 2. Does not contain conflate start a block comment
+ *   a. this is to prevent a "defer" statement from within a block comment from
+ *      being considered a valid defer statement.
+ * 3. There is no opening brace in the line
+ ******************************************************************************/
 func obviouslyFineLine(_line string) bool {
   /* assume line is safe first because it's easier to lock as false */
   var returnVal bool = true
 
   deferRegex := regexp.MustCompile(`^\s*defer\s+`)
+  openBraceRegex := regexp.MustCompile(`.*[{}].*`)
   
-  /* fail search if possibly valid defer statement is found */
-  returnVal &= !deferRegex.MatchString(_line)
-
-  /* make sure that the line doesn't contain an open block comment */
-  returnVal &= !detectOpenButNotCompleteBlockComment(_line)
+  if ( !deferRegex.MatchString(_line) &&
+       !detectOpenButNotCompleteBlockComment(_line) &&
+       !openBraceRegex.MatchString(_line) ) {
+    returnVal = true
+  } else {
+    returnVal = false
+  }
 
   return returnVal
 }
