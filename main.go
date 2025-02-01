@@ -131,7 +131,8 @@ func main() {
   handleUserSubmittedExtensions(*extensions)
   filesToDefersify := findFilesToDefersify()
   fmt.Println(filesToDefersify)
-  deferSearcher.SeachForDefers(filesToDefersify[0])
-  deferSearcher.SeachForDefers(filesToDefersify[1])
+  for _, file := range(filesToDefersify) {
+    deferSearcher.SeachForDefers(file)
+  }
 }
 
