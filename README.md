@@ -1,1 +1,1 @@
-![Defersify][images/Logo.jpg]
+![Defersify](images/Logo.jpg)
