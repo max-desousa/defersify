@@ -1,1 +1,1 @@
-![Defersify][images/logo.jpg]
+![Defersify][images/Logo.jpg]
