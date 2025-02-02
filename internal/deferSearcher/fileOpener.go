@@ -203,12 +203,14 @@ func simpleFileRename(_filepath string) string {
   var fileExtension string
   var nonExtensionString string
  
-  indexOfFileExtensionPeriod = strings.LastIndex(_filepath, ".")
+  indexOfFileExtensionPeriod = strings.LastIndex(_filepath, "deferable_")
 
   nonExtensionString = _filepath[:indexOfFileExtensionPeriod]
-  fileExtension = _filepath[indexOfFileExtensionPeriod:]
+  fileExtension = _filepath[(indexOfFileExtensionPeriod + len("deferable_")):]
+  fmt.Printf("nonExtensionString: %v\n", nonExtensionString)
+  fmt.Printf("fileExtension: %v\n", fileExtension)
 
-  outputString = nonExtensionString + "_defersified" + fileExtension
+  outputString = nonExtensionString + fileExtension
   return outputString
 }
 

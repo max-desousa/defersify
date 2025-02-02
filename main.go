@@ -82,7 +82,7 @@ func handleUserSubmittedExtensions(_userFlagInput string) bool {
  * Description: 
  ******************************************************************************/
 func regexForExtensions() string {
-  returnVal := "\\.("
+  returnVal := "deferable_[a-zA-Z0-9-_]*\\.("
   returnVal += strings.Join(Extensions, "|")
   returnVal += ")$"
   return returnVal
