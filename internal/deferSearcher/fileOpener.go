@@ -85,8 +85,10 @@ func SeachForDefers(_filepath string) {
       writeFile.WriteString(line + "\n")
     } else if ( returnRegex.MatchString(line) ) {
       for i := levelOfNest; i > 0; i-- {
-        for _, val := range deferStack[i-1] {
-          writeFile.WriteString(val + "\n")
+        for j := len(deferStack[i-1]); j > 0; j-- {
+        //for _, val := range deferStack[i-1] {
+          //writeFile.WriteString(val + "\n")
+          writeFile.WriteString(deferStack[i-1][j-1] + "\n")
           fmt.Println("Writing from defer stack...")
         }
         writeFile.WriteString(line + "\n")
