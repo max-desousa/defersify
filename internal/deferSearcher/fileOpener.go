@@ -81,8 +81,8 @@ func SeachForDefers(_filepath string) {
         withinBlockDefers = false
       } else {
         if ( len(deferStack[levelOfNest-1]) > 0 ) {
-          for _, val := range deferStack[levelOfNest-1] {
-            writeFile.WriteString(val + "\n")
+          for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
+            writeFile.WriteString(deferStack[levelOfNest-1][i-1] + "\n")
             fmt.Println("Writing from defer stack...")
           }
           deferStack[levelOfNest-1] = nil
