@@ -16,8 +16,7 @@ func SeachForDefers(_filepath string) {
 
   deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
   deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
-  //deferRegex := regexp.MustCompile(`defer\s+`)
-  deferAndOnlyDeferRegex := regexp.MustCompile(`^\s*defer\s*$`)
+  startBlockDeferRegex := regexp.MustCompile(`^\s*defer\s*{?\s*$`)
   returnRegex := regexp.MustCompile(`^\s*return\s+`)
   
   readFile, err := os.Open(_filepath)
@@ -41,11 +40,14 @@ func SeachForDefers(_filepath string) {
   for scanner.Scan() {
     line := scanner.Text()
 
+    /* write to the output file any line that won't affect the nature of a defer */
     if (obviouslyFineLine(line)) {
       writeFile.WriteString(line + "\n")
       continue
     }
 
+    /* if the line has a multi line block comment handle that here using a flag
+     * that passes all lines until block comment is closed */
     if ( strings.Contains(line, "/*") || withinBlockComment ) {
       withinBlockComment = true
       writeFile.WriteString(line + "\n")
@@ -55,12 +57,15 @@ func SeachForDefers(_filepath string) {
       continue
     }
 
+    /* Not sure if there is a use case for multiple {'s in one line... therefore
+     * throwing an error message if this is the case... perhaps a future feature */
     if strings.Count(line, "{") > 1 {
       fmt.Println("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
       break
     }
 
-    if ( deferAndOnlyDeferRegex.MatchString(line) ) {
+    /* set flag if we're in a defer block */
+    if ( startBlockDeferRegex.MatchString(line) ) {
       withinBlockDefers = true
       continue
     }
