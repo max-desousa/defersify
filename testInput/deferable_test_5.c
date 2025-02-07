@@ -34,3 +34,10 @@ int main()
 
   return 0;
   }
+
+int test()
+  {
+  defer printf("deferred statement\n");
+  printf("Test\n");
+  return 0;
+  }
