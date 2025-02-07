@@ -13,6 +13,7 @@ func SeachForDefers(_filepath string) {
   var levelOfNest int = 0
   withinBlockDefers := false
   withinBlockComment := false
+  lineNumber := 0
 
   deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
   deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
@@ -38,10 +39,13 @@ func SeachForDefers(_filepath string) {
   scanner := bufio.NewScanner(readFile)
 
   for scanner.Scan() {
+    fmt.Printf("The defer stack at line %v is: %v\n", lineNumber, deferStack)
+    lineNumber++
     line := scanner.Text()
 
     /* write to the output file any line that won't affect the nature of a defer */
     if (obviouslyFineLine(line)) {
+      fmt.Printf("Writing line %v to the file because it's obviolsy fine\n", lineNumber)
       writeFile.WriteString(line + "\n")
       continue
     }
@@ -69,57 +73,59 @@ func SeachForDefers(_filepath string) {
       withinBlockDefers = true
       continue
     }
-
-    if ( strings.Contains(line, "{") ) {
-      if (deferStatementRegex.MatchString(line)) {
-        withinBlockDefers = true
-      } else {
-        levelOfNest++
-        fmt.Println("Incrementing level of nest")
-        writeFile.WriteString(line + "\n")
-      }
-    } else if ( deferStatementRegex.MatchString(line) ) {
-      modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
-      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
-    } else if ( strings.Contains(line, "}") ) {
-      if ( withinBlockDefers ) {
+    if ( withinBlockDefers ) {
+      if ( strings.Contains(line, "}") ) {
         withinBlockDefers = false
       } else {
-        if ( len(deferStack[levelOfNest-1]) > 0 ) {
-          for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
-            writeFile.WriteString(deferStack[levelOfNest-1][i-1] + "\n")
-            fmt.Println("Writing from defer stack...")
-          }
-          deferStack[levelOfNest-1] = nil
-        }
-        levelOfNest--
-        writeFile.WriteString(line + "\n")
+        deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], line)
       }
+      continue
+    }
+
+    if ( strings.Contains(line, "{") ) {
+
+      levelOfNest++
+      fmt.Printf("Incrementing level of nest to: %v due to line number %v\n", levelOfNest, lineNumber)
+      writeFile.WriteString(line + "\n")
+
+    } else if ( deferStatementRegex.MatchString(line) ) {
+
+      modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
+      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
+
     } else if ( returnRegex.MatchString(line) ) {
-      fmt.Println("Found a return statement")
-      fmt.Println(deferStack)
+
+      fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
       for i := levelOfNest; i > 0; i-- {
         for j := len(deferStack[i-1]); j > 0; j-- {
           writeFile.WriteString(deferStack[i-1][j-1] + "\n")
-          fmt.Println("Writing from defer stack...")
         }
       }
       writeFile.WriteString(line + "\n")
       if ( levelOfNest == 1 ) {
-        levelOfNest = 0
         deferStack = make(map[int][]string)
       }
-    } else {
-      if ( withinBlockDefers ) {
-        deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], line)
-      } else {
-        writeFile.WriteString(line + "\n")
+
+    } else if ( strings.Contains(line, "}") ) {
+      
+      if ( levelOfNest > 0 ) {
+        for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
+          writeFile.WriteString(deferStack[levelOfNest-1][i-1] + "\n")
+        }
+        deferStack[levelOfNest-1] = nil
+        levelOfNest--
+        fmt.Printf("Decrementing level of nest to: %v due to line number %v\n", levelOfNest, lineNumber)
       }
+      writeFile.WriteString(line + "\n")
+
+    } else {
+      writeFile.WriteString(line + "\n")
     }
 
+    if ( levelOfNest < 0 ) {
+      deferStack = make(map[int][]string)
+    }
   }
-
-  fmt.Println(deferStack)
 }
 
 /*******************************************************************************
