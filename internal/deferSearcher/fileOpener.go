@@ -98,7 +98,7 @@ func SeachForDefers(_filepath string) {
       fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
       for i := levelOfNest; i > 0; i-- {
         for j := len(deferStack[i-1]); j > 0; j-- {
-          writeFile.WriteString(deferStack[i-1][j-1] + "\n")
+          writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[i-1][j-1]) + "\n")
         }
       }
       writeFile.WriteString(line + "\n")
@@ -111,6 +111,7 @@ func SeachForDefers(_filepath string) {
       if ( levelOfNest > 0 ) {
         for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
           writeFile.WriteString(deferStack[levelOfNest-1][i-1] + "\n")
+          writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[levelOfNest-1][i-1]) + "\n")
         }
         deferStack[levelOfNest-1] = nil
         levelOfNest--
