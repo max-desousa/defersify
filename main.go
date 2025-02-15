@@ -5,6 +5,7 @@ import (
   "flag"
   "defersify/internal/userSettings"
   "defersify/internal/fileFinder"
+  "defersify/internal/defersification"
 )
 
 
@@ -22,7 +23,7 @@ func main() {
   if (userSettings.SetUserExtensionOptions(*extensions)) {
     files := fileFinder.FindDeferableFiles()
     for _, val := range(files) {
-      fmt.Println(val)
+      defersification.DefersifyFile(val)
     }
   } else {
     fmt.Println("Error setting user extension options")

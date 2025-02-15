@@ -1,4 +1,4 @@
-package deferSearcher
+package defersification
 
 import (
   "strings"

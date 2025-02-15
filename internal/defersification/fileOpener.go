@@ -1,4 +1,4 @@
-package deferSearcher
+package defersification
 
 import (
   "fmt"
@@ -20,21 +20,7 @@ func SeachForDefers(_filepath string) {
   startBlockDeferRegex := regexp.MustCompile(`^\s*defer\s*{?\s*$`)
   returnRegex := regexp.MustCompile(`^\s*return\s+`)
   
-  readFile, err := os.Open(_filepath)
-  defer readFile.Close()
 
-  if err != nil {
-    fmt.Println("Error opening source file")
-    return
-  }
-
-  writeFile, err := os.Create(simpleFileRename(_filepath))
-  defer writeFile.Close()
-
-  if err != nil {
-    fmt.Println("Error creating new file")
-    return
-  }
 
   scanner := bufio.NewScanner(readFile)
 
