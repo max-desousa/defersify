@@ -17,13 +17,22 @@ import (
  ******************************************************************************/
 func parseAndWriteFiles(_readFile *os.File, _writeFile *os.File) {
   deferStack := make(map[int][]string)
+
+  /* Variable tracking braces to determine what portions of the stack should be applied */
   var levelOfNest int = 0
+
+  /* Varibles to track common instances of items that would span multiple lines,
+   * or have a multiline context */
   withinBlockDefers := false
   withinBlockComment := false
+  skipBraceDueToReturn := false
+
+  /* Regular expressions for searching that's better than string.Contains */
   deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
   deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
   returnRegex := regexp.MustCompile(`^\s*return\s+`)
 
+  /* Handle the file line by line */
   scanner := bufio.NewScanner(_readFile)
   for scanner.Scan() {
     line := scanner.Text()
@@ -51,56 +60,98 @@ func parseAndWriteFiles(_readFile *os.File, _writeFile *os.File) {
       continue
     }
 
+    /* Meat and Potatoes: this is where the more substantive parts of the file
+     * are handled. To make sure that any checks for correction at the end are
+     * possible, the checks are done without "continue" statements. This means
+     * an uglier chain of if/else's, but I like it as it is for now. Maybe if
+     * the repo gets any love, I'll consider refactoring (or as I use it and 
+     * find bugs... appropriate refactoring will of course occur. */
 
-
-
-
+    /* The order of the checks OBVIOUSLY matters, a quick explanation would be:
+     * 1. Check for opening brace to increment level of nest
+     *   a. This takes precedence because functions need to be opened before
+     *      anything else can happen.
+     * 2. Check for defer statements to add to the stack
+     *   a. Happens after opening brace because defer statements need to be nested,
+     *      there are no global defers.
+     * 3. Check for return statements to dump the stack
+     *    a. Return statements are a higher priority for stack dumping and would
+     *       be reached before closing braces
+     * 4. Check for closing brace to decrement level of nest and dump the stack
+     *    a. The last real check with the lowest priority
+     * 5. Check for any other lines that don't fit the above criteria */  
     if ( strings.Contains(line, "{") ) {
-
+      /* checking lines that contain an opening brace to monitor the stack level,
+       * there is an assumption that code isn't included on the same line as an
+       * opening brace. This is how I code, perhaps a future improvement. */
       levelOfNest++
       _writeFile.WriteString(line + "\n")
 
     } else if ( deferStatementRegex.MatchString(line) ) {
-
+      /* Here the handling of defer statements is done, adding them to the 
+       * relevant index of the deferStack */
       modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
       deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
 
     } else if ( returnRegex.MatchString(line) ) {
+      /* Here the handling of "return" statements is done. Dumping the entirety
+       * of the deferStack. */
 
+      /* additional check that the return statemtn doesn't also have a closing
+       * brace for the section of code, and set a flag to skip the upcoming brace */
+      if ( !strings.Contains(line, "}") ) {
+        skipBraceDueToReturn = true
+      }
+
+      /* stack dump */
       fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
       for i := levelOfNest; i > 0; i-- {
         for j := len(deferStack[i-1]); j > 0; j-- {
           _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[i-1][j-1]) + "\n")
         }
       }
+
+      /* write return statement to the file */
       _writeFile.WriteString(line + "\n")
+
+      /* if the return is at the top level of the function, don't waste any time
+       * and reset the stack so no errors have an opportunity to show up in
+       * your output file */
       if ( levelOfNest == 1 ) {
         deferStack = make(map[int][]string)
       }
 
     } else if ( strings.Contains(line, "}") ) {
       
-      if ( levelOfNest > 0 ) {
-        for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
-          _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[levelOfNest-1][i-1]) + "\n")
+      /* Check if the brace should be skipped due to a previous return statement */
+      if ( skipBraceDueToReturn ) {
+        skipBraceDueToReturn = false
+      } else {
+        if ( levelOfNest > 0 ) {
+          for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
+            _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[levelOfNest-1][i-1]) + "\n")
+          }
         }
-        deferStack[levelOfNest-1] = nil
-        levelOfNest--
       }
+      /* decrement the lecel of nest, clear that level of the stack, and write
+       * closing brace to output file. */
+      deferStack[levelOfNest-1] = nil
+      levelOfNest--
       _writeFile.WriteString(line + "\n")
 
     } else {
+      /* catch all for lines that don't fit the above criteria - simply write
+       * to output file */
       _writeFile.WriteString(line + "\n")
     }
-
-
-
-
 
 
     /* Final Check: Rectify stack in case of issues */
     if ( levelOfNest < 0 ) {
       /* Level of nest should never be less than 0... if it is, reset the stack */
+      /* This was a thought to include in case a syntax error was found, it's a 
+       * weak solution so the next function will hopefully be handled better and
+       * compile */
       deferStack = make(map[int][]string)
     }
     
