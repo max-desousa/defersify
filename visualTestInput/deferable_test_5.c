@@ -18,11 +18,12 @@ int main()
     FILE *second_file;
     second_file = fopen("test_3.c", "r");
     defer printf("Second File closed\n");
-    defer fclose(file);
+    defer fclose(second_file);
     defer printf("Closing second file\n");
 
     if (second_file == NULL)
       {
+      defer printf("I should only see this once\n");
       printf("Second file not found\n");
       return 2;
       }
@@ -40,4 +41,10 @@ int test()
   defer printf("deferred statement\n");
   printf("Test\n");
   return 0;
+  }
+
+void test2()
+  {
+  defer printf("deferred statement\n");
+  printf("Test\n");
   }
