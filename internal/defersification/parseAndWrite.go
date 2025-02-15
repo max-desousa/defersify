@@ -16,165 +16,141 @@ import (
  * source file and writing to the new file.
  ******************************************************************************/
 func parseAndWriteFiles(_readFile *os.File, _writeFile *os.File) {
-  //deferStack := make(map[int][]string)
-  //var levelOfNet int = 0
-  //withinBlockDefers := false
+  deferStack := make(map[int][]string)
+  var levelOfNest int = 0
+  withinBlockDefers := false
   withinBlockComment := false
-  //lineNumber := 0
+  deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
+  deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
+  returnRegex := regexp.MustCompile(`^\s*return\s+`)
 
   scanner := bufio.NewScanner(_readFile)
   for scanner.Scan() {
     line := scanner.Text()
     
+    /* Check 1: Lines irrelevant to defer's or that affect level of nest */
     if (obviouslyFineLine(line)) {
       _writeFile.WriteString(line + "\n")
       continue
     }
 
+    /* Check 2: Block comment detection */
     if (blockCommentDetector(line, &withinBlockComment)) {
       _writeFile.WriteString(line + "\n")
       continue
     }
-    //if (multipleOpeningBracesPanic(line)) panic("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
+
+    /* Check 3: Panic... no logice (yet?) for multiple opening braces */
+    if (multipleOpeningBracesPanic(line)) {
+      fmt.Println("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
+      return
+    }
+
+    /* Check 4: Defer block detection */
+    if (detectBlockDefers(line, &withinBlockDefers, levelOfNest, &deferStack)) {
+      continue
+    }
+
+
+
+
+
+    if ( strings.Contains(line, "{") ) {
+
+      levelOfNest++
+      _writeFile.WriteString(line + "\n")
+
+    } else if ( deferStatementRegex.MatchString(line) ) {
+
+      modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
+      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
+
+    } else if ( returnRegex.MatchString(line) ) {
+
+      fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
+      for i := levelOfNest; i > 0; i-- {
+        for j := len(deferStack[i-1]); j > 0; j-- {
+          _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[i-1][j-1]) + "\n")
+        }
+      }
+      _writeFile.WriteString(line + "\n")
+      if ( levelOfNest == 1 ) {
+        deferStack = make(map[int][]string)
+      }
+
+    } else if ( strings.Contains(line, "}") ) {
+      
+      if ( levelOfNest > 0 ) {
+        for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
+          _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[levelOfNest-1][i-1]) + "\n")
+        }
+        deferStack[levelOfNest-1] = nil
+        levelOfNest--
+      }
+      _writeFile.WriteString(line + "\n")
+
+    } else {
+      _writeFile.WriteString(line + "\n")
+    }
+
+
+
+
+
+
+    /* Final Check: Rectify stack in case of issues */
+    if ( levelOfNest < 0 ) {
+      /* Level of nest should never be less than 0... if it is, reset the stack */
+      deferStack = make(map[int][]string)
+    }
+    
   }
 }
 
-//func SeachForDefers(_filepath string) {
-//  deferStack := make(map[int][]string)
-//  var levelOfNest int = 0
-//  withinBlockDefers := false
-//  withinBlockComment := false
-//  lineNumber := 0
-//
-//  deferStatementRegex := regexp.MustCompile(`^\s*defer\s+`)
-//  deferStatementWithSpacingRegex := regexp.MustCompile(`defer\s+`)
-//  startBlockDeferRegex := regexp.MustCompile(`^\s*defer\s*{?\s*$`)
-//  returnRegex := regexp.MustCompile(`^\s*return\s+`)
-//  
-//  readFile, err := os.Open(_filepath)
-//  defer readFile.Close()
-//
-//  if err != nil {
-//    fmt.Println("Error opening source file")
-//    return
-//  }
-//
-//  writeFile, err := os.Create(simpleFileRename(_filepath))
-//  defer writeFile.Close()
-//
-//  if err != nil {
-//    fmt.Println("Error creating new file")
-//    return
-//  }
-//
-//  scanner := bufio.NewScanner(readFile)
-//
-//  for scanner.Scan() {
-//    fmt.Printf("The defer stack at line %v is: %v\n", lineNumber, deferStack)
-//    lineNumber++
-//    line := scanner.Text()
-//
-//    /* write to the output file any line that won't affect the nature of a defer */
-//    if (obviouslyFineLine(line)) {
-//      fmt.Printf("Writing line %v to the file because it's obviolsy fine\n", lineNumber)
-//      writeFile.WriteString(line + "\n")
-//      continue
-//    }
-//
-//    /* if the line has a multi line block comment handle that here using a flag
-//     * that passes all lines until block comment is closed */
-//    if ( strings.Contains(line, "/*") || withinBlockComment ) {
-//      withinBlockComment = true
-//      writeFile.WriteString(line + "\n")
-//      if ( strings.Contains(line, "*/") ) {
-//        withinBlockComment = false
-//      }
-//      continue
-//    }
-//
-//    /* Not sure if there is a use case for multiple {'s in one line... therefore
-//     * throwing an error message if this is the case... perhaps a future feature */
-//    if strings.Count(line, "{") > 1 {
-//      fmt.Println("Found a line with more than one opening brace... this is logic that is being put off for minimal viable product")
-//      break
-//    }
-//
-//    /* set flag if we're in a defer block */
-//    if ( startBlockDeferRegex.MatchString(line) ) {
-//      withinBlockDefers = true
-//      continue
-//    }
-//    if ( withinBlockDefers ) {
-//      if ( strings.Contains(line, "}") ) {
-//        withinBlockDefers = false
-//      } else {
-//        deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], line)
-//      }
-//      continue
-//    }
-//
-//    if ( strings.Contains(line, "{") ) {
-//
-//      levelOfNest++
-//      fmt.Printf("Incrementing level of nest to: %v due to line number %v\n", levelOfNest, lineNumber)
-//      writeFile.WriteString(line + "\n")
-//
-//    } else if ( deferStatementRegex.MatchString(line) ) {
-//
-//      modifiedLine := deferStatementWithSpacingRegex.ReplaceAllString(line, "")
-//      deferStack[levelOfNest-1] = append(deferStack[levelOfNest-1], modifiedLine)
-//
-//    } else if ( returnRegex.MatchString(line) ) {
-//
-//      fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
-//      for i := levelOfNest; i > 0; i-- {
-//        for j := len(deferStack[i-1]); j > 0; j-- {
-//          writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[i-1][j-1]) + "\n")
-//        }
-//      }
-//      writeFile.WriteString(line + "\n")
-//      if ( levelOfNest == 1 ) {
-//        deferStack = make(map[int][]string)
-//      }
-//
-//    } else if ( strings.Contains(line, "}") ) {
-//      
-//      if ( levelOfNest > 0 ) {
-//        for i := len(deferStack[levelOfNest-1]); i > 0; i-- {
-//          writeFile.WriteString(deferStack[levelOfNest-1][i-1] + "\n")
-//          writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[levelOfNest-1][i-1]) + "\n")
-//        }
-//        deferStack[levelOfNest-1] = nil
-//        levelOfNest--
-//        fmt.Printf("Decrementing level of nest to: %v due to line number %v\n", levelOfNest, lineNumber)
-//      }
-//      writeFile.WriteString(line + "\n")
-//
-//    } else {
-//      writeFile.WriteString(line + "\n")
-//    }
-//
-//    if ( levelOfNest < 0 ) {
-//      deferStack = make(map[int][]string)
-//    }
-//  }
-//}
-//
-///*******************************************************************************
-// * Function: detectCloseToBlockComment
-// ******************************************************************************/
-//func detectCloseToBlockComment(_line string) bool {
-//  var returnVal bool = false
-//
-//  blockCommentCloseRegex := regexp.MustCompile(`\*/`)
-//
-//  if (blockCommentCloseRegex.MatchString(_line)) {
-//    returnVal = true
-//  }
-//
-//  return returnVal
-//}
-//
+/*******************************************************************************
+ *Function: detectBlockDefers
+ *
+ * Description:
+ ******************************************************************************/
+ func detectBlockDefers(_line string, _withinBlockDefers *bool, _levelOfNest int, _deferStack *map[int][]string) bool {
+
+   var returnVal bool = false
+  startBlockDeferRegex := regexp.MustCompile(`^\s*defer\s*{?\s*$`)
+
+  /* set flag if we're in a defer block */
+  if ( startBlockDeferRegex.MatchString(_line) ) {
+    *_withinBlockDefers = true
+    returnVal = true
+  }
+  if ( *_withinBlockDefers ) {
+    if ( strings.Contains(_line, "}") ) {
+      *_withinBlockDefers = false
+    } else {
+      (*_deferStack)[_levelOfNest-1] = append((*_deferStack)[_levelOfNest-1], _line)
+    }
+    returnVal = true
+  }
+  return returnVal
+}
+
+
+/*******************************************************************************
+ * Function: multipleOpeningBracesPanic
+ *
+ * Description:
+ ******************************************************************************/
+func multipleOpeningBracesPanic(_line string) bool {
+  var returnVal bool = false
+  /* Not sure if there is a use case for multiple {'s in one line... therefore
+   * throwing an error message if this is the case... perhaps a future feature */
+  if strings.Count(_line, "{") > 1 {
+    returnVal = true
+  }
+  return returnVal
+}
+
+
+
 /*******************************************************************************
  * Function: detectOpenButNotCompleteBlockComment
  * 
