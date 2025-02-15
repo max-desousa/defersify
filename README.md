@@ -1,5 +1,9 @@
 ![Defersify](images/Logo.jpg)
 
+# Disclaimer of Public-ness
+
+I don't normally make repo's public. But, this is at a state where I'd like it to be public. But I'm not necessarily broadcasting it's existence to the world. There are improvements I'd like to make - but it seems to be functional. We'll call this a soft launch while I make it accessible to the public, but don't try to shill it out to pad my resume.
+
 # What is Defersify?
 
 Defersify is supposed to be a simple tool to extend the feature of the "defer" keyword found in GoLang to other languages. At present moment the only language supported is C. (I've added .cpp and .cc as supported extensions... but I don't like c++ so... I have no pland of testing it.)
