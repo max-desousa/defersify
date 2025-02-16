@@ -69,6 +69,7 @@ func SetUserExtensionOptions(_userFlagInput string) bool {
     for _, val := range(Extensions) {
       fmt.Printf("\t.%v\n", val)
     }
+    fmt.Println("-----------------------------")
   }
 
   return returnVal

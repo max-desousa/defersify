@@ -24,6 +24,9 @@ func main() {
     files := fileFinder.FindDeferableFiles()
     for _, val := range(files) {
       defersification.DefersifyFile(val)
+      if (userSettings.Verbose) {
+        fmt.Println("-----------------------------")
+      }
     }
   } else {
     fmt.Println("Error setting user extension options")

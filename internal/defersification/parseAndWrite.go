@@ -104,7 +104,7 @@ func parseAndWriteFiles(_readFile *os.File, _writeFile *os.File) {
       }
 
       /* stack dump */
-      fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
+      //fmt.Printf("Return statement hit at level of nest: %v and a deferStack of %v\n", levelOfNest, deferStack)
       for i := levelOfNest; i > 0; i-- {
         for j := len(deferStack[i-1]); j > 0; j-- {
           _writeFile.WriteString(padDeferStatementForNest(levelOfNest, deferStack[i-1][j-1]) + "\n")
@@ -277,8 +277,8 @@ func simpleFileRename(_filepath string) string {
 
   nonExtensionString = _filepath[:indexOfFileExtensionPeriod]
   fileExtension = _filepath[(indexOfFileExtensionPeriod + len("deferable_")):]
-  fmt.Printf("nonExtensionString: %v\n", nonExtensionString)
-  fmt.Printf("fileExtension: %v\n", fileExtension)
+  //fmt.Printf("nonExtensionString: %v\n", nonExtensionString)
+  //fmt.Printf("fileExtension: %v\n", fileExtension)
 
   outputString = nonExtensionString + fileExtension
   return outputString

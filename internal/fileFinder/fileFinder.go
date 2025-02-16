@@ -52,6 +52,14 @@ func FindDeferableFiles() []string {
     fmt.Printf("Error walking the path: %v\n", err)
   }
 
+  if (userSettings.Verbose) {
+    fmt.Println("Found the following files to defersify:")
+    for _, val := range(returnVal) {
+      fmt.Printf("\t%v\n", val)
+    }
+    fmt.Println("-----------------------------")
+  }
+
   return returnVal
 }
 
