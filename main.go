@@ -1,7 +1,6 @@
 package main
 
 import (
-  "fmt"
   "flag"
   "defersify/internal/userSettings"
   "defersify/internal/fileFinder"
@@ -20,17 +19,15 @@ func main() {
   flag.Parse()
 
   userSettings.Verbose = *verbose
-  if (userSettings.SetUserExtensionOptions(*extensions)) {
-    files := fileFinder.FindDeferableFiles()
-    for _, val := range(files) {
-      defersification.DefersifyFile(val)
-      if (userSettings.Verbose) {
-        fmt.Println("-----------------------------")
-      }
-    }
-  } else {
-    fmt.Println("Error setting user extension options")
-    fmt.Println("The current supported extensions are: ", userSettings.GetSupportedExtensions())
+
+  if (!userSettings.SetUserExtensionOptions(*extensions)) {
+    panic("Error setting user extension options - run ./defersify --help or run in verbose mode for more information about error hit.")
+  }
+
+  files := fileFinder.SearchForDeferableFiles(flag.Args())
+
+  for _, val := range(files) {
+    defersification.DefersifyFile(val)
   }
 }
 

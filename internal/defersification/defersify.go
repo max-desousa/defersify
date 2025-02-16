@@ -34,4 +34,8 @@ func DefersifyFile(_filePath string) {
   defer writeFile.Close()
 
   parseAndWriteFiles(readFile, writeFile)
+
+  if (userSettings.Verbose) {
+    fmt.Println("-----------------------------")
+  }
 }

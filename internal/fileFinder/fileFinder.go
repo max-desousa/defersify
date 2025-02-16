@@ -7,6 +7,7 @@ import (
   "fmt"
   "strings"
   "io/fs"
+  "os"
 )
 
 var Verbose bool = false
@@ -26,6 +27,13 @@ func regexForExtensions() string {
   return returnVal
 }
 
+func printFoundFiles(_files []string) {
+  fmt.Println("Found the following files to defersify:")
+  for _, val := range(_files) {
+    fmt.Printf("\t%v\n", val)
+  }
+  fmt.Println("-----------------------------")
+}
 
 /*******************************************************************************
  * Function: FindDeferableFiles
@@ -33,11 +41,11 @@ func regexForExtensions() string {
  * Description: This function searches the current directory and all 
  * subdirectories for files that match the naming format for defersification.
  ******************************************************************************/
-func FindDeferableFiles() []string {
+func findDeferableFilesInDir(_startingPath string) []string {
   var returnVal []string
   pattern := regexp.MustCompile(regexForExtensions())
 
-  err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+  err := filepath.WalkDir(_startingPath, func(path string, d fs.DirEntry, err error) error {
     if err != nil {
       return err
     }
@@ -52,14 +60,44 @@ func FindDeferableFiles() []string {
     fmt.Printf("Error walking the path: %v\n", err)
   }
 
-  if (userSettings.Verbose) {
-    fmt.Println("Found the following files to defersify:")
-    for _, val := range(returnVal) {
-      fmt.Printf("\t%v\n", val)
-    }
-    fmt.Println("-----------------------------")
-  }
-
   return returnVal
 }
 
+/*******************************************************************************
+ * Function: NuancedSearchForDeferableFiles
+ *
+ * Description: This function searches for all the submitted strings - file or
+ * directory - for files that match the naming format for defersification.
+ ******************************************************************************/
+
+func SearchForDeferableFiles(_startingPaths []string) []string {
+  var returnVal []string
+
+  if len(_startingPaths) == 0 {
+    returnVal = findDeferableFilesInDir(".")
+  } else {
+    for _, val := range(_startingPaths) {
+      pathInfo, err := os.Stat(val)
+      if (err != nil) {
+        panic(err)
+      }
+
+      if (pathInfo.IsDir()) {
+        nestedFiles := findDeferableFilesInDir(val)
+        for _, nestedVal := range(nestedFiles) {
+          returnVal = append(returnVal, nestedVal)
+        }
+      } else {
+        if (regexp.MustCompile(regexForExtensions()).MatchString(pathInfo.Name())) {
+          returnVal = append(returnVal, val)
+        }
+      }
+    }
+  }
+
+
+  if (userSettings.Verbose) {
+    printFoundFiles(returnVal)
+  }
+  return returnVal
+}
