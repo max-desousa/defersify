@@ -6,7 +6,7 @@ import (
   "defersify/internal/userSettings"
 )
 
-func DefersifyFile(_filePath string) {
+func DefersifyFile(_filePath string, _outputPath string) {
   if userSettings.Verbose {
     fmt.Println("Defersifying file: ", _filePath)
   }
@@ -20,7 +20,7 @@ func DefersifyFile(_filePath string) {
   defer readFile.Close()
 
   /* create object to use for writing to new file */
-  outputFileName := simpleFileRename(_filePath)
+  outputFileName := simpleFileRename(_filePath, _outputPath)
 
   if (userSettings.Verbose) {
     fmt.Println("Will write to file: ", outputFileName)

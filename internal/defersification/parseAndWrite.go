@@ -267,20 +267,26 @@ func obviouslyFineLine(_line string) bool {
  * 
  * outpus will be original.c -> original_defersified.c
  ******************************************************************************/
-func simpleFileRename(_filepath string) string {
+func simpleFileRename(_filepath string, _outputPath string) string {
   var outputString string
   var indexOfFileExtensionPeriod int
-  var fileExtension string
-  var nonExtensionString string
+  var fileName string
+  var pathString string
  
   indexOfFileExtensionPeriod = strings.LastIndex(_filepath, "deferable_")
 
-  nonExtensionString = _filepath[:indexOfFileExtensionPeriod]
-  fileExtension = _filepath[(indexOfFileExtensionPeriod + len("deferable_")):]
-  //fmt.Printf("nonExtensionString: %v\n", nonExtensionString)
-  //fmt.Printf("fileExtension: %v\n", fileExtension)
+  pathString = _filepath[:indexOfFileExtensionPeriod]
+  fileName = _filepath[(indexOfFileExtensionPeriod + len("deferable_")):]
+  //fmt.Printf("pathString: %v\n", pathString)
+  //fmt.Printf("fileName: %v\n", fileName)
 
-  outputString = nonExtensionString + fileExtension
+  if ("." == _outputPath) {
+    /* when default output path is used */
+    outputString = pathString + fileName
+  } else {
+    /* when non-default output path is used */
+    outputString = _outputPath + fileName
+  }
   return outputString
 }
 
